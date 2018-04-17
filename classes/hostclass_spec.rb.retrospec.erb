@@ -1,0 +1,45 @@
+require 'spec_helper'
+require 'shared_contexts'
+require 'hiera'
+<%- module_name = File.read(File.join('manifests', 'init.pp')).scan(/\s*class\s(\w+)/).flatten.last -%>
+
+describe '<%= type_name -%>' do
+
+  <%- if type_name == module_name -%>
+  # context in the spec/shared_contexts.rb file
+  include_context :hiera
+  hiera = Hiera.new()
+
+  on_supported_os.each do |os, facts|
+    context "on #{os}" do
+      let(:facts) do
+        facts
+      end
+
+      # below is a list of the resource parameters that you can override.
+      # By default all non-required parameters are commented out
+
+      let(:params) do
+        {
+        <%- parameters.lines.each do |line| -%>
+          <%- if line.split(' ').first == '#' -%>
+          <%= line -%>
+          <%- else -%>
+          <%= line.split(' ').first -%> hiera.lookup('<%= line.split(' ').first.tr(':', '') -%>', nil, nil),
+          <%- end -%>
+        <%- end -%>
+        }
+      end
+
+      <%- if false -%>
+        <%-resources.each do |res| -%>
+          <%= res -%>
+        <%- end -%>
+      <%- end -%>
+
+      it { is_expected.to compile }
+      it { is_expected.to compile.with_all_deps }
+    end
+  end
+  <%- end -%>
+end
